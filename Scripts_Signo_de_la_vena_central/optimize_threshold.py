@@ -1,43 +1,3 @@
-"""
-optimize_threshold.py
-----------------------
-Optimización del threshold de clasificación CVS (Central Vein Sign) a
-partir de las probabilidades ya guardadas por evaluate.py en
-resultados_evaluacion/test_predictions.csv.
-
-Este script NO reentrena el modelo ni vuelve a hacer inferencia: parte
-únicamente de las columnas "true_label" y "prob_cvs_pos" que ya existen
-en ese CSV, y prueba, a posteriori, qué pasaría si el punto de corte
-sobre prob_cvs_pos no fuera 0.5 sino cualquier otro valor entre 0 y 1.
-
-Por qué merece la pena barrer el threshold
--------------------------------------------
-Con threshold=0.5, precision/recall/F1/specificity son solo una
-fotografía de UN punto de la curva ROC. Con clases desbalanceadas
-(muchas más lesiones CVS- que CVS+) ese punto no tiene por qué ser el
-mejor compromiso: aquí, por ejemplo, recall=0.4167 con threshold=0.5
-sugiere que el modelo podría estar dejando pasar bastantes CVS+ reales.
-Barrer el threshold de 0.00 a 1.00 permite ver ese compromiso completo
-y elegir, con criterio, un punto de corte distinto sin tocar el modelo.
-
-Dos criterios de threshold "óptimo" (no hay un único candidato válido):
-  - Threshold que maximiza el F1-score: mejor compromiso precision/recall.
-  - Threshold que maximiza el índice de Youden (recall + specificity - 1):
-    mejor compromiso sensibilidad/especificidad, típico en literatura
-    médica porque no penaliza el desbalance de clases como sí lo hace F1.
-
-Salidas (todas en resultados_evaluacion/):
-  - threshold_metrics.csv       : una fila por threshold (0.00 a 1.00, paso 0.01)
-  - precision_vs_threshold.png
-  - recall_vs_threshold.png
-  - f1_vs_threshold.png
-  - specificity_vs_threshold.png
-  - threshold_optimization_summary.txt
-
-Uso
----
-    python optimize_threshold.py
-"""
 
 from pathlib import Path
 
@@ -66,9 +26,8 @@ SPECIFICITY_PLOT_PATH = RESULTS_DIR / "specificity_vs_threshold.png"
 THRESHOLDS = np.round(np.arange(0.0, 1.0 + 1e-9, 0.01), 2)
 
 
-# ---------------------------------------------------------------------------
+
 # 1. Cargar test_predictions.csv
-# ---------------------------------------------------------------------------
 
 def load_predictions(path: Path = TEST_PREDICTIONS_CSV_PATH) -> pd.DataFrame:
     """
@@ -88,22 +47,12 @@ def load_predictions(path: Path = TEST_PREDICTIONS_CSV_PATH) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
-# ---------------------------------------------------------------------------
+
 # 2. Métricas para un threshold concreto
-# ---------------------------------------------------------------------------
+
 
 def metrics_at_threshold(y_true: np.ndarray, y_prob_pos: np.ndarray, threshold: float) -> dict:
-    """
-    Calcula la matriz de confusión y las métricas derivadas de ella
-    para un único threshold sobre prob_cvs_pos. Una lesión se clasifica
-    como CVS+ (1) si prob_cvs_pos >= threshold, y como CVS- (0) en caso
-    contrario.
-
-    zero_division=0 en division manual (vía if/else) evita errores
-    cuando un threshold extremo (p.ej. 1.00) deja algún denominador a
-    cero: por ejemplo, con threshold=1.00 nunca se predice CVS+, así
-    que precision (TP / (TP+FP)) queda indefinida y se reporta 0.0.
-    """
+  
     y_pred = (y_prob_pos >= threshold).astype(int)
 
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
@@ -131,18 +80,14 @@ def metrics_at_threshold(y_true: np.ndarray, y_prob_pos: np.ndarray, threshold: 
 
 
 def sweep_thresholds(y_true: np.ndarray, y_prob_pos: np.ndarray, thresholds: np.ndarray = THRESHOLDS) -> pd.DataFrame:
-    """
-    Recorre todos los thresholds y devuelve una fila por threshold con
-    sus métricas. El ROC-AUC no entra aquí porque no depende del
-    threshold (se calcula una única vez en main()).
-    """
+    
     rows = [metrics_at_threshold(y_true, y_prob_pos, t) for t in thresholds]
     return pd.DataFrame(rows)
 
 
-# ---------------------------------------------------------------------------
+
 # 3. Selección de los thresholds recomendados
-# ---------------------------------------------------------------------------
+
 
 def best_by_f1(metrics_df: pd.DataFrame) -> pd.Series:
     """Fila (threshold + métricas) que maximiza el F1-score."""
@@ -154,9 +99,9 @@ def best_by_youden(metrics_df: pd.DataFrame) -> pd.Series:
     return metrics_df.loc[metrics_df["youden_j"].idxmax()]
 
 
-# ---------------------------------------------------------------------------
+
 # 4. Gráficas
-# ---------------------------------------------------------------------------
+
 
 def _plot_metric_vs_threshold(
     metrics_df: pd.DataFrame,
@@ -229,9 +174,9 @@ def save_summary(roc_auc: float, row_f1: pd.Series, row_youden: pd.Series, n_sam
         f.write("\n".join(lines) + "\n")
 
 
-# ---------------------------------------------------------------------------
+
 # Main
-# ---------------------------------------------------------------------------
+
 
 def main() -> None:
     df = load_predictions()
