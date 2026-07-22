@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import confusion_matrix, roc_auc_score
 
-# ---------------------------------------------------------------------------
+
 # Rutas
-# ---------------------------------------------------------------------------
+
 BASE_DIR = Path(__file__).parent.parent  # segmentaciones/ (este script vive en segmentaciones/scripts/)
 RESULTS_DIR = BASE_DIR / "resultados_evaluacion"
 
@@ -30,15 +30,7 @@ THRESHOLDS = np.round(np.arange(0.0, 1.0 + 1e-9, 0.01), 2)
 # 1. Cargar test_predictions.csv
 
 def load_predictions(path: Path = TEST_PREDICTIONS_CSV_PATH) -> pd.DataFrame:
-    """
-    Lee test_predictions.csv (generado por evaluate.py) y devuelve el
-    DataFrame tal cual, con columnas lesion_id, patient_id, true_label,
-    predicted_label, prob_cvs_neg, prob_cvs_pos.
-
-    predicted_label no se usa aquí: es la predicción con threshold=0.5
-    que ya calculó evaluate.py. Este script recalcula sus propias
-    predicciones para cada threshold a partir de prob_cvs_pos.
-    """
+  
     if not path.exists():
         raise FileNotFoundError(
             f"No se encontró {path}. Este script no hace inferencia: "
