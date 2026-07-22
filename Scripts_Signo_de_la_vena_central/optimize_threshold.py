@@ -132,9 +132,8 @@ def plot_all(metrics_df: pd.DataFrame, best_f1_threshold: float) -> None:
     _plot_metric_vs_threshold(metrics_df, "specificity", "Specificity (Especificidad)", "Specificity vs Threshold", SPECIFICITY_PLOT_PATH, best_f1_threshold)
 
 
-# ---------------------------------------------------------------------------
 # 5. Resumen en texto
-# ---------------------------------------------------------------------------
+
 
 def format_row(label: str, row: pd.Series) -> list[str]:
     return [
